@@ -1,0 +1,12 @@
+# Add these to the Databricks serverless Environment used by the notebooks/Job.
+# Pin exact versions after the first successful compatibility test.
+# TA-Lib ships Linux x86_64/aarch64 wheels containing the native C library.
+# Keep finlab.Data lazy-loaded even when TA-Lib is installed, so crawler imports
+# remain decoupled from optional analysis modules.
+TA-Lib==0.8.2
+lxml
+python-dateutil
+requests
+tqdm
+ipywidgets
+

@@ -1,0 +1,91 @@
+# Keep this repository focused on the Databricks migration, model-training
+# source code, and the reusable FinLab package.
+
+# Course notebooks, homework, and generated charts kept at the repository root
+# (project notebooks under databricks_migrate/ remain trackable).
+/*.ipynb
+/*.png
+/auto_update.py
+
+# Local source datasets and generated exports
+/history/
+/data/
+/databricks_migrate/export/
+*.parquet
+*.pkl
+*.pickle
+*.db
+*.sqlite
+*.sqlite3
+
+# Trained models and experiment outputs
+/forecastModel/
+model_artifacts/
+training_runs/
+mlruns/
+mlartifacts/
+*.h5
+*.keras
+*.joblib
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# Archives and temporary output
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.log
+*.tmp
+*.temp
+*.cache
+*.out
+
+# Databricks local state and credentials
+.databricks/
+*.databricks.env
+
+
+# Python caches, environments, test output, and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Local secrets (example templates remain trackable)
+.env
+.env.*
+!.env.example
+!.env.*.example
+secret.yml
+secrets.yml
+
+# Editors, operating systems, and local agent metadata
+.vscode/
+.idea/
+*.iml
+*.suo
+*.user
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.ipynb_checkpoints/
+.agents/
+.codex/
