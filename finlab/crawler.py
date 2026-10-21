@@ -773,8 +773,22 @@ def crawl_otc_divide_ratio():
 
 
 def crawl_twse_cap_reduction():
-    datestr = datetime.datetime.now().strftime('%Y%m%d')# 2011
-    res3 = requests_get("https://www.twse.com.tw/rwd/zh/reducation/TWTAUU?response=csv&startDate=2020101&endDate=" + datestr + "&_=1551597854043")
+    datestr = datetime.datetime.now().strftime('%Y%m%d')
+    start_date = '20200101'
+    res3 = requests_get(
+        "https://www.twse.com.tw/rwd/zh/reducation/TWTAUU",
+        params={
+            'response': 'csv',
+            'startDate': start_date,
+            'endDate': datestr,
+        },
+    )
+    res3.raise_for_status()
+    if not res3.text.strip():
+        raise RuntimeError(
+            "TWSE TWTAUU returned an empty response: "
+            f"startDate={start_date}, endDate={datestr}"
+        )
 
     df = pd.read_csv(io.StringIO(res3.text), header=1)
     df.columns = df.columns.str.replace(' ', '')

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from requests.exceptions import ChunkedEncodingError
 
@@ -69,6 +69,37 @@ class CrawlerHttpTests(unittest.TestCase):
         self.assertTrue(first.closed)
         self.assertTrue(second.closed)
         self.assertIsNone(crawler.ses)
+
+    def test_twse_cap_reduction_uses_eight_digit_start_date(self) -> None:
+        csv_text = """109年01月01日 至 115年10月21日 股票減資恢復買賣參考價格
+恢復買賣日期,股票代號,名稱,停止買賣前收盤價格,恢復買賣參考價,漲停價格,跌停價格,開盤競價基準,除權參考價,減資原因,詳細資料
+115/10/21,1234,測試公司,100,50,55,45,50,50,彌補虧損,-
+"""
+        response = Mock(text=csv_text)
+
+        with patch.object(crawler, "requests_get", return_value=response) as request:
+            result = crawler.crawl_twse_cap_reduction()
+
+        response.raise_for_status.assert_called_once_with()
+        params = request.call_args.kwargs["params"]
+        self.assertEqual(params["startDate"], "20200101")
+        self.assertRegex(params["endDate"], r"^\d{8}$")
+        self.assertEqual(result.index.names, ["stock_id", "date"])
+        self.assertEqual(result.iloc[0]["twse_cap_divide_ratio"], 2.0)
+
+    def test_twse_cap_reduction_reports_empty_response(self) -> None:
+        response = Mock(text="  \n")
+
+        with (
+            patch.object(crawler, "requests_get", return_value=response),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "TWSE TWTAUU returned an empty response",
+            ),
+        ):
+            crawler.crawl_twse_cap_reduction()
+
+        response.raise_for_status.assert_called_once_with()
 
 
 if __name__ == "__main__":
