@@ -32,6 +32,17 @@ class DatasetSpec:
     enabled: bool = True
     output_tables: tuple[str, ...] = ()
     note: str = ""
+    primary_keys: tuple[str, ...] = ("stock_id", "date")
+    event_time_column: str = "date"
+    available_time_column: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.primary_keys:
+            raise ValueError(f"{self.name}: primary_keys cannot be empty")
+        if len(self.primary_keys) != len(set(self.primary_keys)):
+            raise ValueError(f"{self.name}: primary_keys cannot contain duplicates")
+        if not self.event_time_column:
+            raise ValueError(f"{self.name}: event_time_column cannot be empty")
 
     @property
     def outputs(self) -> tuple[str, ...]:
@@ -117,6 +128,16 @@ def get_registry(
         if (include_disabled or spec.enabled)
         and (selected_names is None or spec.name in selected_names)
     )
+
+
+def get_output_spec(output_table: str) -> DatasetSpec:
+    """Resolve a Bronze output table to its declared dataset contract."""
+    matches = [spec for spec in DATASETS if output_table in spec.outputs]
+    if not matches:
+        raise KeyError(f"Unknown dataset output: {output_table!r}")
+    if len(matches) > 1:
+        raise ValueError(f"Dataset output is ambiguous: {output_table!r}")
+    return matches[0]
 
 
 def _daily_dates(start: dt.date, end: dt.date) -> list[dt.date]:

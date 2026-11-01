@@ -5,6 +5,7 @@ from databricks_migrate.databricks_src.crawler_registry import (
     Cadence,
     DatasetSpec,
     get_registry,
+    get_output_spec,
     plan_requests,
 )
 
@@ -37,6 +38,27 @@ class RegistryTests(unittest.TestCase):
             bootstrap_start=dt.date(2026, 7, 12),
         )
         self.assertEqual(requests, [None])
+
+    def test_existing_datasets_keep_legacy_key_and_event_time_contract(self) -> None:
+        for spec in get_registry(include_disabled=True):
+            self.assertEqual(spec.primary_keys, ("stock_id", "date"))
+            self.assertEqual(spec.event_time_column, "date")
+
+    def test_output_table_resolves_to_parent_dataset_contract(self) -> None:
+        spec = get_output_spec("balance_sheet")
+        self.assertEqual(spec.name, "financial_statement")
+        self.assertIn("balance_sheet", spec.outputs)
+
+    def test_dataset_spec_rejects_duplicate_keys(self) -> None:
+        with self.assertRaisesRegex(ValueError, "duplicates"):
+            DatasetSpec(
+                "test",
+                "crawl_test",
+                Cadence.DAILY,
+                True,
+                0,
+                primary_keys=("stock_id", "stock_id"),
+            )
 
 
 if __name__ == "__main__":

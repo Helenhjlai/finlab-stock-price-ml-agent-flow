@@ -121,10 +121,17 @@ DatasetSpec(
     cadence=Cadence.DAILY,
     takes_date=True,
     lookback_days=7,
+    primary_keys=("stock_id", "date"),
+    event_time_column="date",
 )
 ```
 
 它將表名與 crawler function 明確綁定，不使用 `eval()`，也不掃描所有 `crawl_*` 函式。`plan_requests()` 讀取 state 的 `max_event_time` 後回推 lookback，例如 price 最新資料是 7/18，就重新抓最近七天。重新抓取是刻意的：來源若修正資料，Delta MERGE 會更新同一 key，而不是建立重複列。
+
+現有 dataset 不指定新欄位時，預設契約仍為 `stock_id + date`／`date`，因此已存在的
+Bronze tables 不需要重載。新 snapshot、事件或財務資料才宣告自己的 primary keys 與
+event time。既有資料的相容性遷移見
+[Bronze Crawler Contract 遷移指南](../docs/bronze_contract_migration_zh-TW.md)。
 
 頻率規則：
 
@@ -144,7 +151,8 @@ DatasetSpec(
 1. 將 legacy MultiIndex 的 `stock_id/date` 還原為一般欄位。
 2. 將 `stock_id` 固定為 string、`date` 固定為 datetime。
 3. 將混合 `int/str` 的 pandas object 欄位轉成 nullable string，避免 ArrowInvalid。
-4. 在單一 batch 中依 `stock_id + date` 去重，保留最後一筆。
+4. 在單一 batch 中依 registry 宣告的 primary keys 去重；舊資料集預設仍是
+   `stock_id + date`，保留最後一筆。
 
 `DeltaWriter.merge_spark()` 加入：
 
@@ -154,13 +162,28 @@ _ingested_at  寫入時間
 _run_id       對應 crawler_run_log 的 run ID
 ```
 
+所有 Bronze 的 provenance/v1 另有：
+
+```text
+_source_record_id    dataset + primary keys 的穩定 SHA-256
+_source_published_at 來源實際發布時間；沒有可靠來源時為 NULL
+_payload_hash        業務欄位 canonical JSON 的 SHA-256
+```
+
+既有表使用 `notebooks/backfill_bronze_provenance.py` 逐表遷移；它預設為 dry run，
+正式寫入須同時設定 `apply_changes=true` 與
+`confirmation=BACKFILL_PROVENANCE`。回填後，daily writer 會自動識別並持續維護這三欄。
+尚不存在的新 Bronze 表第一次建立時會直接包含 provenance/v1；尚未回填的舊表則維持
+原狀，避免只替 lookback 範圍填值而造成半套歷史資料。
+完整順序見 [Bronze Crawler Contract 遷移指南](../docs/bronze_contract_migration_zh-TW.md)。
+
 第一次執行、table 不存在：
 
 ```python
 prepared.write.format("delta").mode("errorifexists").saveAsTable(table_name)
 ```
 
-之後執行：
+之後依 dataset contract 執行；現有資料集產生的 SQL 仍是：
 
 ```sql
 MERGE INTO target
@@ -310,9 +333,14 @@ ORDER BY started_at DESC, dataset;
 
 ```powershell
 python -m unittest databricks_migrate.tests.test_registry -v
+python -m unittest databricks_migrate.tests.test_delta_writer_contracts -v
 ```
 
 DeltaWriter 與 StateRepository 的整合測試必須在 Databricks serverless notebook 執行，因為本機目前沒有 Spark/Delta runtime。
+
+若 Bronze 已存在，不要重跑 historical loader。先後各執行唯讀
+`notebooks/audit_bronze_contracts.py`，再依 `price` 起做單表 canary；完整 runbook 見
+[Bronze Crawler Contract 遷移指南](../docs/bronze_contract_migration_zh-TW.md)。
 
 ## 9. Forecast model training
 
@@ -323,5 +351,17 @@ train fit preprocessing、訓練 NN/LightGBM/Random Forest、評估 ensemble，�
 bundle 寫入 Unity Catalog Volume；也可選擇記錄到 MLflow 與註冊 Unity Catalog model。
 
 完整流程、命令、bundle 結構和官方參考文件見：
-`docs/forecast_model_training_and_packaging_zh-TW.md`。
+[Forecast model 訓練與打包指南](../docs/forecast_model_training_and_packaging_zh-TW.md)。
+
+Gold feature notebook 與 Optuna walk-forward 自動調參流程見：
+[Forecast feature 與調參指南](../docs/forecast_feature_and_tuning_automation_zh-TW.md)。核心檔案是
+`notebooks/forecast_training_features.py` 與
+`databricks_src/tune_forecast_models.py`；調參輸出的 `best_params.json` 可直接傳給
+`train_forecast_models.py --params-file`。
+
+本次實作過程、設計取捨、測試輸出與 Databricks 待驗證清單見：
+[實作紀錄](../docs/forecast_feature_tuning_implementation_record_zh-TW.md)。
+
+Gold tables 從 bronze 建立、candidate smoke run、正式部署、增量更新、Agent 權限、
+驗收 SQL 與回滾步驟見：[Gold Data 部署指南](../docs/gold_data_deployment_zh-TW.md)。
 

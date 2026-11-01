@@ -15,7 +15,7 @@ PROJECT_ROOT = os.path.abspath("..")
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from databricks_src.crawler_registry import HISTORICAL_TABLES
+from databricks_src.crawler_registry import HISTORICAL_TABLES, get_output_spec
 from databricks_src.delta_writer import DeltaWriter
 from databricks_src.state_repository import RunRecord, StateRepository
 
@@ -64,18 +64,22 @@ for dataset in datasets:
     print(f"\n[{dataset}] reading {parquet_path}")
 
     try:
+        spec = get_output_spec(dataset)
         source_df = spark.read.parquet(parquet_path)
-        if "stock_id" not in source_df.columns or "date" not in source_df.columns:
-            raise KeyError(f"{dataset}: Parquet must contain stock_id and date")
+        required = set(spec.primary_keys) | {spec.event_time_column}
+        missing = required - set(source_df.columns)
+        if missing:
+            raise KeyError(f"{dataset}: Parquet missing {sorted(missing)}")
 
-        source_df = (
-            source_df
-            .withColumn("stock_id", F.col("stock_id").cast("string"))
-            .withColumn("date", F.col("date").cast("timestamp"))
+        if "stock_id" in source_df.columns:
+            source_df = source_df.withColumn("stock_id", F.col("stock_id").cast("string"))
+        source_df = source_df.withColumn(
+            spec.event_time_column,
+            F.col(spec.event_time_column).cast("timestamp"),
         )
         bounds = source_df.agg(
-            F.min("date").alias("min_date"),
-            F.max("date").alias("max_date"),
+            F.min(spec.event_time_column).alias("min_date"),
+            F.max(spec.event_time_column).alias("max_date"),
         ).first()
 
         result = writer.merge_spark(
@@ -83,6 +87,9 @@ for dataset in datasets:
             dataset=dataset,
             run_id=run_id,
             source="historical_pickle",
+            key_columns=spec.primary_keys,
+            event_time_column=spec.event_time_column,
+            available_time_column=spec.available_time_column,
         )
         finished_at = dt.datetime.now()
         state_repo.mark_success(

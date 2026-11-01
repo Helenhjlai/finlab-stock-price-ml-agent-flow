@@ -90,7 +90,7 @@ for spec in registry:
                 )
 
             rows_fetched += len(raw)
-            watermark = max_event_time(raw)
+            watermark = max_event_time(raw, spec.event_time_column)
             if watermark is not None:
                 batch_watermark = max(batch_watermark, watermark) if batch_watermark else watermark
 
@@ -99,6 +99,9 @@ for spec in registry:
                 dataset=spec.name,
                 run_id=run_id,
                 source=f"finlab.crawler.{spec.crawler_function}",
+                key_columns=spec.primary_keys,
+                event_time_column=spec.event_time_column,
+                available_time_column=spec.available_time_column,
             )
             rows_merged += result.input_rows
             print(

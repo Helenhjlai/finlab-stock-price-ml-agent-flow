@@ -60,7 +60,7 @@ __pycache__/
 htmlcov/
 .tox/
 .nox/
-.venv/
+.venv*/
 venv/
 env/
 ENV/

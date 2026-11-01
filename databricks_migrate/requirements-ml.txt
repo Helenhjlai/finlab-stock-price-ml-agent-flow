@@ -1,0 +1,11 @@
+# Install these in the Databricks Environment used by the training Job.
+# After the first successful run, pin the exact versions recorded in manifest.json.
+numpy
+pandas
+scikit-learn
+joblib
+lightgbm
+tensorflow
+mlflow
+optuna
+
