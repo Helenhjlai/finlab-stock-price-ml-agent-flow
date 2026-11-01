@@ -1,0 +1,25 @@
+command:
+  - streamlit
+  - run
+  - app.py
+  - --server.address=0.0.0.0
+  - --server.port=${DATABRICKS_APP_PORT}
+  - --server.headless=true
+env:
+  - name: FINLAB_DATA_BACKEND
+    value: databricks
+  - name: FINLAB_MODEL_BACKEND
+    value: databricks
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: FINLAB_PRICE_TABLE
+    valueFrom: price-table
+  - name: FINLAB_FACTOR_TABLE
+    valueFrom: factor-table
+  - name: DATABRICKS_MODEL_ENDPOINT
+    valueFrom: chat-model
+  - name: ENABLE_MLFLOW_TRACING
+    value: "true"
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"
+

@@ -1,0 +1,17 @@
+# Runtime versions verified against the public package line on 2026-10-23.
+# Re-lock and run the eval suite before upgrading any agent/framework dependency.
+langchain==1.2.10
+langchain-core==1.2.10
+langgraph==1.0.8
+langgraph-prebuilt==1.0.8
+databricks-langchain==0.20.0
+databricks-sdk>=0.74,<1
+databricks-sql-connector[pyarrow]>=4.6,<5
+unitycatalog-langchain==0.4.0
+unitycatalog-ai==0.4.0
+databricks-connect==16.1.7
+mlflow>=3.6,<4
+pandas>=2.2,<3
+pydantic>=2.10,<3
+streamlit>=1.64,<1.66
+

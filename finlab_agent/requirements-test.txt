@@ -1,0 +1,10 @@
+# Minimal dependency set for deterministic tests, including Python 3.13.
+# Databricks integration packages are intentionally kept in requirements.txt.
+langchain==1.2.10
+langchain-core==1.2.10
+langgraph==1.0.8
+langgraph-prebuilt==1.0.8
+pandas>=2.2,<3
+pydantic>=2.10,<3
+pytest>=8.3,<10
+

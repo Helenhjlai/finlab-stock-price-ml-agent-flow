@@ -1,0 +1,6 @@
+-r requirements-test.txt
+streamlit>=1.64,<1.66
+pytest>=8.3,<10
+pytest-cov>=6,<8
+
+

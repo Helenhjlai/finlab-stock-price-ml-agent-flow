@@ -1,0 +1,42 @@
+{
+  "catalog_version": "capabilities/v1",
+  "namespace": "finlab.research",
+  "capabilities": [
+    {
+      "capability_id": "market.indicators/v1",
+      "summary": "查詢單一股票在指定截止日的收盤價、MA20、MA60 與 20 日價格動能。",
+      "when_to_use": "需要描述一支股票的歷史價格或技術指標時。",
+      "output_summary": "資料日期、stock_id、close、ma20、ma60、momentum_20d、warnings 與 provenance。",
+      "tags": ["股票指標", "收盤價", "均線", "MA20", "MA60", "動能", "indicator", "moving average", "momentum"],
+      "limitations": ["至少需要 60 個交易日", "只處理單一股票", "不是選股或回測能力"],
+      "implementation_tool": "get_stock_indicators",
+      "required_data_products": ["daily_prices/v2"],
+      "risk_class": "read_only_research",
+      "enabled": true
+    },
+    {
+      "capability_id": "market.screen/v1",
+      "summary": "用允許的價格、均線、動能、成交量與營收成長條件篩選及排序股票。",
+      "when_to_use": "需要從股票池找出符合一個或多個條件的股票時。",
+      "output_summary": "符合條件的股票清單、各項指標、match_count、warnings 與 provenance。",
+      "tags": ["股票篩選", "選股", "排序", "營收年增率", "高於均線", "screen", "filter", "rank"],
+      "limitations": ["規則採 AND", "最多 8 條規則、500 支輸入股票、100 筆輸出", "只接受 schema 列出的欄位與 operator"],
+      "implementation_tool": "screen_stocks",
+      "required_data_products": ["daily_prices/v2", "stock_factors/v1"],
+      "risk_class": "read_only_research",
+      "enabled": true
+    },
+    {
+      "capability_id": "strategy.backtest/v1",
+      "summary": "執行白名單策略回測並回傳報酬、波動、最大回撤、Sharpe、交易數與成本。",
+      "when_to_use": "需要評估已核准策略的歷史績效與風險時。",
+      "output_summary": "策略說明、績效與風險 metrics、最近權益曲線、成本假設、warnings 與 provenance。",
+      "tags": ["策略回測", "績效", "年化報酬", "最大回撤", "Sharpe", "交易數", "backtest", "drawdown"],
+      "limitations": ["只接受白名單 strategy_id", "不模擬所有成交限制與市場衝擊", "歷史績效不代表未來"],
+      "implementation_tool": "run_strategy_backtest",
+      "required_data_products": ["daily_prices/v2"],
+      "risk_class": "controlled_computation",
+      "enabled": true
+    }
+  ]
+}

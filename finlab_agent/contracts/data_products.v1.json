@@ -1,0 +1,101 @@
+{
+  "contract_schema_version": "1.0.0",
+  "namespace": "finlab.gold",
+  "products": [
+    {
+      "product_name": "daily_prices",
+      "contract_version": "v2",
+      "table_name": "finlab.gold.daily_prices",
+      "status": "active",
+      "owner": "finlab-data",
+      "access_class": "agent_read",
+      "grain": "one row per trading date and stock_id",
+      "primary_key": ["date", "stock_id"],
+      "event_time_column": "date",
+      "available_time_column": "date",
+      "freshness_sla": "T+1 by 20:30 Asia/Taipei",
+      "fields": {
+        "date": {"type": "date", "nullable": false},
+        "stock_id": {"type": "string", "nullable": false},
+        "stock_id_numeric": {"type": "string", "nullable": false},
+        "name": {"type": "string", "nullable": true},
+        "is_etf": {"type": "boolean", "nullable": false},
+        "etf_type_code": {"type": "string", "nullable": true},
+        "etf_type": {"type": "string", "nullable": true},
+        "open": {"type": "double", "nullable": false, "unit": "adjusted price"},
+        "high": {"type": "double", "nullable": false, "unit": "adjusted price"},
+        "low": {"type": "double", "nullable": false, "unit": "adjusted price"},
+        "close": {"type": "double", "nullable": false, "unit": "adjusted price"},
+        "volume": {"type": "double", "nullable": true, "unit": "shares"},
+        "adjustment_basis": {"type": "string", "nullable": false},
+        "_contract_version": {"type": "string", "nullable": false},
+        "_materialized_at": {"type": "timestamp", "nullable": false}
+      }
+    },
+    {
+      "product_name": "stock_factors",
+      "contract_version": "v1",
+      "table_name": "finlab.gold.stock_factors",
+      "status": "active",
+      "owner": "finlab-data",
+      "access_class": "agent_read",
+      "grain": "one row per factor available date and stock_id",
+      "primary_key": ["date", "stock_id"],
+      "event_time_column": "revenue_period_end",
+      "available_time_column": "available_at",
+      "freshness_sla": "monthly after revenue publication checkpoint",
+      "fields": {
+        "date": {"type": "date", "nullable": false},
+        "stock_id": {"type": "string", "nullable": false},
+        "available_at": {"type": "date", "nullable": false},
+        "source_release_date": {"type": "date", "nullable": false},
+        "revenue_period_end": {"type": "date", "nullable": false},
+        "revenue": {"type": "double", "nullable": false},
+        "revenue_mom": {"type": "double", "nullable": true, "unit": "ratio"},
+        "revenue_yoy": {"type": "double", "nullable": true, "unit": "ratio"},
+        "_contract_version": {"type": "string", "nullable": false},
+        "_materialized_at": {"type": "timestamp", "nullable": false}
+      }
+    },
+    {
+      "product_name": "forecast_training_features",
+      "contract_version": "v1",
+      "table_name": "finlab.gold.forecast_training_features",
+      "status": "active",
+      "owner": "finlab-ml",
+      "access_class": "training_only",
+      "grain": "one row per observation date and stock_id",
+      "primary_key": ["date", "stock_id"],
+      "event_time_column": "date",
+      "available_time_column": "date",
+      "freshness_sla": "monthly before candidate model training",
+      "contains_future_label": true,
+      "fields": {
+        "date": {"type": "timestamp", "nullable": false},
+        "stock_id": {"type": "string", "nullable": false},
+        "return": {"type": "double", "nullable": false},
+        "rank": {"type": "double", "nullable": false, "range": [0, 1]},
+        "_feature_version": {"type": "string", "nullable": false},
+        "_materialized_at": {"type": "timestamp", "nullable": false}
+      }
+    },
+    {
+      "product_name": "data_contract_registry",
+      "contract_version": "v1",
+      "table_name": "finlab.gold.data_contract_registry",
+      "status": "active",
+      "owner": "finlab-data",
+      "access_class": "operations_read",
+      "grain": "one row per product_name",
+      "primary_key": ["product_name"],
+      "event_time_column": "updated_at",
+      "available_time_column": "updated_at",
+      "freshness_sla": "updated with each contract deployment"
+    }
+  ],
+  "tool_dependencies": {
+    "get_stock_indicators": ["daily_prices/v2"],
+    "screen_stocks": ["daily_prices/v2", "stock_factors/v1"],
+    "run_strategy_backtest": ["daily_prices/v2"]
+  }
+}
